@@ -1,0 +1,40 @@
+张三
+软件工程师
+邮箱：zhangsan@example.com | 电话：138-0000-0000
+
+教育背景
+XX大学 计算机科学与技术 本科 2020-2025
+
+专业技能
+- 编程语言：Python, Java, C++, JavaScript
+- 框架：Django, Flask, Spring Boot, React
+- 数据库：MySQL, MongoDB, Redis
+- 工具：Git, Docker, Kubernetes, Jenkins
+- 其他：熟悉微服务架构、RESTful API设计
+
+项目经验
+1. 电商后台管理系统
+   - 使用Django + Vue.js开发
+   - 实现商品管理、订单管理、用户管理等功能
+   - 使用MySQL存储数据，Redis缓存
+
+2. 实时聊天应用
+   - 使用Spring Boot + WebSocket开发
+   - 支持多人在线聊天、消息推送
+   - 使用MongoDB存储聊天记录
+
+工作经历
+XX科技公司 软件开发实习生 2024.07-2024.10
+- 参与公司核心业务系统的开发
+- 负责用户模块和订单模块的后端开发
+- 使用Git进行版本控制，参与代码评审
+
+获奖情况
+- 大学期间获得校级奖学金3次
+- 参加全国大学生程序设计竞赛获得省级二等奖
+
+自我评价
+- 热爱编程，乐于学习新技术
+- 具备良好的团队合作能力和沟通能力
+- 对互联网行业有浓厚兴趣
+END

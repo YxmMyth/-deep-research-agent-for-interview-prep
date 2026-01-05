@@ -1,0 +1,46 @@
+[tool.poetry]
+name = "market-interview-agent"
+version = "0.1.0"
+description = "Market-Reality Aligned Interview Agent - 对比官方JD与民间面经的求职辅助智能体"
+authors = ["Your Name <your.email@example.com>"]
+readme = "README.md"
+packages = [{include = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+langgraph = ">=0.2.0"
+langchain = "^0.3.0"
+langchain-openai = "^0.2.0"
+langchain-community = "^0.3.0"
+openai = "^1.0.0"
+pydantic = "^2.0.0"
+python-dotenv = "^1.0.0"
+crawl4ai = ">=0.3.0"
+scrapegraphai = ">=1.0.0"
+tavily-python = "^0.5.0"
+rich = "^13.0.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+pytest-asyncio = "^0.24.0"
+black = "^24.0.0"
+isort = "^5.13.0"
+mypy = "^1.8.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 100
+target-version = ['py310']
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true

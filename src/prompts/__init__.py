@@ -1,0 +1,19 @@
+"""Prompt templates for the interview agent"""
+
+from .templates import (
+    PLANNER_PROMPT,
+    JD_EXTRACTION_PROMPT,
+    INTERVIEW_EXTRACTION_PROMPT,
+    GAP_ANALYSIS_PROMPT,
+    REPORT_WRITER_PROMPT,
+    CRITIC_CHECKLIST,
+)
+
+__all__ = [
+    "PLANNER_PROMPT",
+    "JD_EXTRACTION_PROMPT",
+    "INTERVIEW_EXTRACTION_PROMPT",
+    "GAP_ANALYSIS_PROMPT",
+    "REPORT_WRITER_PROMPT",
+    "CRITIC_CHECKLIST",
+]
