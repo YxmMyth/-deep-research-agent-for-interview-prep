@@ -28,11 +28,12 @@
 ### 1. 安装依赖
 
 ```bash
-# 安装 Poetry (如果尚未安装)
+# 使用 Poetry 安装 (推荐)
 pip install poetry
-
-# 安装项目依赖
 poetry install
+
+# 或使用 pip 直接安装
+pip install langgraph langchain langchain-openai langchain-community openai pydantic python-dotenv crawl4ai scrapegraphai tavily-python rich streamlit pymupdf
 ```
 
 ### 2. 配置环境变量
@@ -46,15 +47,32 @@ cp .env.example .env
 编辑 `.env` 文件:
 
 ```env
-OPENAI_API_KEY=sk-...
+ZHIPUAI_API_KEY=你的完整Key
 TAVILY_API_KEY=tvly-...
 ```
 
 ### 3. 运行 Agent
 
+#### 方式一: 网页版 (推荐)
+
 ```bash
-poetry run python main.py
+streamlit run web_app.py
 ```
+
+网页版特性:
+- 📄 支持 PDF/TXT 简历上传
+- 🎯 可视化目标岗位输入
+- 🔄 实时显示分析进度
+- 📊 网页内直接查看报告
+- 💾 一键下载 Markdown 报告
+
+#### 方式二: 命令行版
+
+```bash
+python main.py
+```
+
+按照提示输入简历内容（以 END 结束）和目标岗位。
 
 ## 📁 项目结构
 

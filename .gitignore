@@ -50,3 +50,4 @@ poetry.lock
 # Project specific
 interview_preparation_report.md
 *.log
+.streamlit/credentials.toml

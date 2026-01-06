@@ -9,6 +9,7 @@ ETL Pipeline: URL -> Clean Markdown -> Structured JSON
 """
 
 import os
+import sys
 import asyncio
 import json
 from crawl4ai import AsyncWebCrawler
@@ -18,6 +19,18 @@ import logging
 
 from src.llm import call_llm_with_system_message
 
+# Windows 编码修复
+if sys.platform == "win32":
+    os.environ["PYTHONIOENCODING"] = "utf-8"
+
+# 配置 logger 使用安全的编码
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T", bound=BaseModel)
