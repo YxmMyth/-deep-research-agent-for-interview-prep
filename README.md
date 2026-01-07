@@ -4,9 +4,9 @@
 
 ## 🌐 在线使用（推荐）
 
-[![Hugging Face Spaces](https://img.shields.io/badge/🤗-Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/你的用户名/interview-prep-agent)
+[![Hugging Face Spaces](https://img.shields.io/badge/🤗-Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/Evannnnn/interview-prep-agent)
 
-**[点击这里立即使用 →](https://huggingface.co/spaces/你的用户名/interview-prep-agent)**
+**[点击这里立即使用 →](https://huggingface.co/spaces/Evannnnn/interview-prep-agent)**
 
 ✅ 无需安装，无需配置API Key
 ✅ 直接上传简历即可使用
@@ -39,7 +39,7 @@
 
 ### 方式一：在线服务（推荐）
 
-访问 [Hugging Face Spaces](https://huggingface.co/spaces/你的用户名/interview-prep-agent) 直接使用，无需任何配置。
+访问 [Hugging Face Spaces](https://huggingface.co/spaces/Evannnnn/interview-prep-agent) 直接使用，无需任何配置。
 
 **使用限制**（为了防止滥用）：
 - 每个IP每天最多5次分析
