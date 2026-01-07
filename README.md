@@ -1,3 +1,15 @@
+---
+title: 面试准备助手
+emoji: 🎯
+colorFrom: blue
+colorTo: red
+sdk: streamlit
+sdk_version: 1.28.0
+app_file: web_app.py
+pinned: false
+license: mit
+---
+
 # Market-Reality Aligned Interview Agent
 
 基于市场实情的求职辅助智能体，通过对比 **官方 JD** 与 **民间面经**，帮助用户发现简历与市场需求的 Gap，生成有数据支撑的备战报告。
