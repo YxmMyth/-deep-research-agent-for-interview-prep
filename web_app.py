@@ -27,6 +27,7 @@ from streamlit import status
 
 from src.graph import build_graph
 from src.utils.pdf_parser import extract_text_from_file
+from src.rate_limiter import check_rate_limit, get_usage_stats
 
 # 加载环境变量
 load_dotenv()
@@ -79,12 +80,36 @@ def check_env_vars():
     missing_vars = [var for var in required_vars if not os.getenv(var)]
 
     if missing_vars:
-        st.error(f"❌ 缺少必需的环境变量: {', '.join(missing_vars)}")
-        st.info("请在项目根目录创建 .env 文件并设置以下变量：")
-        st.code("""
+        # 检测是否在Hugging Face Spaces环境
+        is_huggingface = os.getenv("SPACE_ID") is not None
+
+        if is_huggingface:
+            st.error("❌ **应用配置错误**")
+            st.warning("""
+            管理员需要在Hugging Face Spaces的 **Settings → Secrets** 中配置以下环境变量：
+
+            - `ZHIPUAI_API_KEY` - 智谱AI的API密钥
+            - `TAVILY_API_KEY` - Tavily搜索的API密钥
+
+            [前往设置页面](./settings)
+            """)
+        else:
+            st.error(f"❌ 缺少必需的环境变量: {', '.join(missing_vars)}")
+            st.info("**本地运行配置步骤：**")
+            st.code("""
+# 1. 复制环境变量模板
+cp .env.example .env
+
+# 2. 编辑 .env 文件，填入你的API密钥：
 ZHIPUAI_API_KEY=你的完整Key
 TAVILY_API_KEY=tvly-...
-        """)
+            """)
+            st.markdown("""
+            **获取API密钥：**
+            - 智谱AI: https://open.bigmodel.cn/
+            - Tavily: https://tavily.com/
+            """)
+
         return False
 
     return True
@@ -266,6 +291,28 @@ def main():
         if st.button("🚀 开始分析", type="primary", use_container_width=True):
             st.session_state.analysis_done = False
             st.session_state.result = None
+
+            # 限流检查（仅在Hugging Face Spaces环境）
+            if os.getenv("SPACE_ID"):
+                # 尝试获取客户端IP
+                try:
+                    # Streamlit的request对象
+                    import streamlit.web.server.server as server
+                    import socket
+                    client_ip = st.context.request.headers.get("x-forwarded-for", "unknown").split(",")[0].strip()
+                    if not client_ip or client_ip == "unknown":
+                        client_ip = "unknown"
+                except Exception:
+                    client_ip = "unknown"
+
+                # 检查限流
+                allowed, error_msg = check_rate_limit(client_ip)
+                if not allowed:
+                    st.error(error_msg)
+                    st.info("📊 **使用统计**：")
+                    stats = get_usage_stats()
+                    st.json(stats)
+                    st.stop()
 
             # 显示进度
             with st.status("🔄 正在分析中，请稍候...", expanded=True) as status:

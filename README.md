@@ -2,6 +2,18 @@
 
 基于市场实情的求职辅助智能体，通过对比 **官方 JD** 与 **民间面经**，帮助用户发现简历与市场需求的 Gap，生成有数据支撑的备战报告。
 
+## 🌐 在线使用（推荐）
+
+[![Hugging Face Spaces](https://img.shields.io/badge/🤗-Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/你的用户名/interview-prep-agent)
+
+**[点击这里立即使用 →](https://huggingface.co/spaces/你的用户名/interview-prep-agent)**
+
+✅ 无需安装，无需配置API Key
+✅ 直接上传简历即可使用
+✅ 完全免费服务
+
+---
+
 ## 🎯 核心特性
 
 - **ETL Pipeline**: Crawl4AI → Clean Markdown → ScrapeGraphAI → Pydantic Object
@@ -23,9 +35,22 @@
 | Structured Extraction | ScrapeGraphAI >= 1.0.0 |
 | Schema Validation | Pydantic V2 >= 2.0 |
 
-## 🚀 快速开始
+## 🚀 使用方式
 
-### 1. 安装依赖
+### 方式一：在线服务（推荐）
+
+访问 [Hugging Face Spaces](https://huggingface.co/spaces/你的用户名/interview-prep-agent) 直接使用，无需任何配置。
+
+**使用限制**（为了防止滥用）：
+- 每个IP每天最多5次分析
+- 全局每天最多100次分析
+- 超限后可本地部署使用
+
+### 方式二：本地部署
+
+如果你需要更频繁的使用或想自建服务，可以本地部署：
+
+#### 1. 安装依赖
 
 ```bash
 # 使用 Poetry 安装 (推荐)
@@ -53,7 +78,7 @@ TAVILY_API_KEY=tvly-...
 
 ### 3. 运行 Agent
 
-#### 方式一: 网页版 (推荐)
+#### 网页版 (推荐)
 
 ```bash
 streamlit run web_app.py
@@ -66,7 +91,7 @@ streamlit run web_app.py
 - 📊 网页内直接查看报告
 - 💾 一键下载 Markdown 报告
 
-#### 方式二: 命令行版
+#### 命令行版
 
 ```bash
 python main.py
@@ -132,3 +157,20 @@ poetry run pytest tests/test_scraper.py -v -s
 ## 📝 License
 
 MIT License
+
+## 🙏 致谢
+
+- **托管**: 感谢 [Hugging Face Spaces](https://huggingface.co/spaces) 提供免费托管服务
+- **LLM**: 使用 [智谱AI GLM-4](https://open.bigmodel.cn/) 提供分析能力
+- **搜索**: 使用 [Tavily](https://tavily.com/) 提供搜索API
+- **框架**: 基于 [LangGraph](https://github.com/langchain-ai/langgraph) 构建
+
+## 📮 反馈与建议
+
+如有问题或建议，欢迎：
+- 提交 [Issue](https://github.com/你的用户名/DeepResearchAgentV2/issues)
+- 发起 [Pull Request](https://github.com/你的用户名/DeepResearchAgentV2/pulls)
+
+## ⭐ Star History
+
+如果这个项目对你有帮助，请给它一个星标！

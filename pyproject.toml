@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "market-interview-agent"
-version = "0.1.0"
+version = "1.0.0"
 description = "Market-Reality Aligned Interview Agent - 对比官方JD与民间面经的求职辅助智能体"
 authors = ["Your Name <your.email@example.com>"]
 readme = "README.md"
