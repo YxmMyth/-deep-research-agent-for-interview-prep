@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 from zhipuai import ZhipuAI
 from typing import Optional
 import logging
+import asyncio
 
 # 加载环境变量
 load_dotenv()
@@ -23,6 +24,10 @@ if not ZHIPUAI_API_KEY:
 
 # 初始化智谱 AI 客户端
 client = ZhipuAI(api_key=ZHIPUAI_API_KEY)
+
+# 导入并初始化速率限制器
+from src.api_rate_limiter import get_api_rate_limiter
+rate_limiter = get_api_rate_limiter()
 
 
 
@@ -50,9 +55,9 @@ async def call_llm(
     Raises:
         Exception: API 调用失败时抛出异常
     """
-    try:
+    # 定义 API 调用函数（同步，因为 ZhipuAI SDK 是同步的）
+    def _api_call():
         logger.info(f"Calling ZhipuAI API with model: {model}")
-
         response = client.chat.completions.create(
             model=model,
             messages=[
@@ -61,11 +66,17 @@ async def call_llm(
             temperature=temperature,
             max_tokens=max_tokens,
         )
+        return response
 
-        # 提取生成的内容
-        content = response.choices[0].message.content
-        logger.info(f"Successfully generated {len(content)} characters")
-        return content
+    try:
+        # 使用速率限制器包装 API 调用
+        async with rate_limiter:
+            response = await rate_limiter.call_with_retry(_api_call)
+
+            # 提取生成的内容
+            content = response.choices[0].message.content
+            logger.info(f"Successfully generated {len(content)} characters")
+            return content
 
     except Exception as e:
         error_msg = f"Failed to call ZhipuAI API: {str(e)}"
@@ -93,9 +104,9 @@ async def call_llm_with_system_message(
     Returns:
         模型生成的文本内容
     """
-    try:
+    # 定义 API 调用函数（同步，因为 ZhipuAI SDK 是同步的）
+    def _api_call():
         logger.info(f"Calling ZhipuAI API with system message, model: {model}")
-
         response = client.chat.completions.create(
             model=model,
             messages=[
@@ -105,11 +116,17 @@ async def call_llm_with_system_message(
             temperature=temperature,
             max_tokens=max_tokens,
         )
+        return response
 
-        # 提取生成的内容
-        content = response.choices[0].message.content
-        logger.info(f"Successfully generated {len(content)} characters")
-        return content
+    try:
+        # 使用速率限制器包装 API 调用
+        async with rate_limiter:
+            response = await rate_limiter.call_with_retry(_api_call)
+
+            # 提取生成的内容
+            content = response.choices[0].message.content
+            logger.info(f"Successfully generated {len(content)} characters")
+            return content
 
     except Exception as e:
         error_msg = f"Failed to call ZhipuAI API: {str(e)}"
