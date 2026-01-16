@@ -184,17 +184,20 @@ def main():
     if not check_env_vars():
         st.stop()
 
-    # 初始化 session state
-    if "analysis_done" not in st.session_state:
-        st.session_state.analysis_done = False
-    if "result" not in st.session_state:
-        st.session_state.result = None
-    if "resume_content" not in st.session_state:
-        st.session_state.resume_content = ""
-    if "report_saved" not in st.session_state:
-        st.session_state.report_saved = False
-    if "report_path" not in st.session_state:
-        st.session_state.report_path = ""
+    # 批量初始化 session state（避免多次检查）
+    default_state = {
+        "analysis_done": False,
+        "result": None,
+        "resume_content": "",
+        "report_saved": False,
+        "report_path": "",
+        "user_profile": UserProfile(),  # 新增：初始化用户画像
+        "selected_position": "字节跳动 后端开发 2026校招",  # 新增：默认岗位
+    }
+
+    for key, value in default_state.items():
+        if key not in st.session_state:
+            st.session_state[key] = value
 
     # 侧边栏
     with st.sidebar:
@@ -218,6 +221,9 @@ def main():
         st.header("👤 个性化设置")
 
         with st.expander("🎯 调整报告风格", expanded=False):
+            # 从 session state 获取当前值，用于设置默认选项
+            current_profile = st.session_state.user_profile
+
             experience_level = st.selectbox(
                 "经验水平",
                 options=["初级", "中级", "高级"],
@@ -226,8 +232,14 @@ def main():
                     "中级": "🌿 中级 - 平衡理论和实践",
                     "高级": "🌳 高级 - 深入架构和设计"
                 }[x],
-                index=1,
-                help="影响建议的深度和技术细节"
+                # 使用当前 session state 的值作为默认选项
+                index=["初级", "中级", "高级"].index({
+                    "junior": "初级",
+                    "mid": "中级",
+                    "senior": "高级"
+                }[current_profile.experience_level]),
+                help="影响建议的深度和技术细节",
+                key="experience_level_selectbox"
             )
 
             learning_style = st.radio(
@@ -238,20 +250,27 @@ def main():
                     "理论导向": "📚 理论 - 推荐书籍和文档",
                     "视觉导向": "🎨 视觉 - 推荐图表和视频"
                 }[x],
-                index=0,
-                help="影响学习资源的推荐方式"
+                # 使用当前 session state 的值作为默认选项
+                index=["实战导向", "理论导向", "视觉导向"].index({
+                    "practical": "实战导向",
+                    "theoretical": "理论导向",
+                    "visual": "视觉导向"
+                }[current_profile.learning_style]),
+                help="影响学习资源的推荐方式",
+                key="learning_style_radio"
             )
 
             preparation_time = st.slider(
                 "准备时间（周）",
                 min_value=1,
                 max_value=12,
-                value=4,
-                help="影响学习计划的紧迫度"
+                value=current_profile.preparation_time_weeks,
+                help="影响学习计划的紧迫度",
+                key="preparation_time_slider"
             )
 
-            # 构建 UserProfile
-            user_profile = UserProfile(
+            # 更新 session state 中的 UserProfile
+            st.session_state.user_profile = UserProfile(
                 experience_level={
                     "初级": "junior",
                     "中级": "mid",
@@ -324,9 +343,10 @@ def main():
         # 目标岗位输入
         target_position = st.text_input(
             "输入目标公司和岗位",
-            value="字节跳动 后端开发 2026校招",
+            value=st.session_state.selected_position,  # 使用 session state 的值
             help="例如: 字节跳动 后端开发 2026校招",
-            label_visibility="collapsed"
+            label_visibility="collapsed",
+            key="target_position_input"
         )
 
         # 常用岗位快捷选择
@@ -339,9 +359,9 @@ def main():
         ]
 
         for option in quick_options:
-            if st.button(option, key=option, use_container_width=True):
-                target_position = option
-                st.rerun()
+            if st.button(option, key=f"quick_select_{option}", use_container_width=True):
+                # 更新 session state 而不是 rerun
+                st.session_state.selected_position = option
 
     # 开始分析按钮
     st.markdown("---")
@@ -380,13 +400,20 @@ def main():
             # 显示进度
             with st.status("🔄 正在分析中，请稍候...", expanded=True) as status:
                 try:
+                    # 添加调试日志
+                    import logging
+                    logging.info(f"Starting analysis with profile: {st.session_state.user_profile}")
+
                     status.write("⚙️ 初始化工作流...")
+
+                    # 从 session state 获取 user_profile（确保存在）
+                    user_profile = st.session_state.get("user_profile", UserProfile())
 
                     # 运行分析（传递用户画像）
                     final_state = run_analysis(
                         st.session_state.resume_content,
                         target_position,
-                        user_profile  # 新增：传递用户画像
+                        user_profile  # ✅ 从 session state 安全获取
                     )
 
                     # 保存到 session state
@@ -422,25 +449,52 @@ def main():
 
                 except Exception as e:
                     # 增强错误处理
+                    import traceback
+                    import logging
+
+                    # 记录完整错误日志
+                    logging.error(f"Analysis failed: {str(e)}\n{traceback.format_exc()}")
+
                     status.update(
                         label=f"❌ 分析失败",
                         state="error",
                         expanded=True
                     )
+
+                    # 显示错误类型
+                    error_type = type(e).__name__
+                    st.error(f"**错误类型**: {error_type}")
                     st.error(f"**错误详情**: {str(e)}")
-                    st.exception(e)
 
-                    st.warning("""
-                    **可能的原因:**
-                    1. API 密钥配置错误
-                    2. 网络连接问题
-                    3. 简历内容格式异常
+                    # 根据错误类型提供针对性建议
+                    if "NameError" in error_type:
+                        st.warning("""
+                        **检测到变量未定义错误**
 
-                    **建议操作:**
-                    - 检查侧边栏的 API 配置状态
-                    - 尝试重新上传简历
-                    - 查看上方详细错误信息
-                    """)
+                        这通常是代码逻辑问题。请尝试：
+                        1. 刷新页面重试
+                        2. 检查侧边栏的个性化设置
+                        """)
+                    elif "API" in str(e) or "429" in str(e) or "rate limit" in str(e).lower():
+                        st.warning("""
+                        **API 调用失败**
+
+                        可能是并发限制或 API 密钥问题。请尝试：
+                        1. 稍后重试
+                        2. 检查侧边栏的 API 配置状态
+                        """)
+                    else:
+                        st.warning("""
+                        **可能的原因:**
+                        1. API 密钥配置错误
+                        2. 网络连接问题
+                        3. 简历内容格式异常
+
+                        **建议操作:**
+                        - 检查侧边栏的 API 配置状态
+                        - 尝试重新上传简历
+                        - 查看上方详细错误信息
+                        """)
 
     # 显示结果
     if st.session_state.analysis_done and st.session_state.result:
