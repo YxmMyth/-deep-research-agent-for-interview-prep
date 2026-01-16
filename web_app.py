@@ -220,71 +220,71 @@ def main():
         # 个性化设置（新增）
         st.header("👤 个性化设置")
 
-        with st.expander("🎯 调整报告风格", expanded=False):
-            # 从 session state 获取当前值，用于设置默认选项
-            current_profile = st.session_state.user_profile
+        # 显示当前配置（不放在 expander 内，避免每次重置）
+        current_profile = st.session_state.user_profile
+        experience_display = {
+            "junior": "🌱 初级",
+            "mid": "🌿 中级",
+            "senior": "🌳 高级"
+        }[current_profile.experience_level]
+        style_display = {
+            "practical": "🛠️ 实战",
+            "theoretical": "📚 理论",
+            "visual": "🎨 视觉"
+        }[current_profile.learning_style]
+        st.info(f"💡 当前配置: {experience_display} | {style_display} | {current_profile.preparation_time_weeks}周准备")
 
-            experience_level = st.selectbox(
-                "经验水平",
-                options=["初级", "中级", "高级"],
-                format_func=lambda x: {
-                    "初级": "🌱 初级 - 通俗易懂，详细解释",
-                    "中级": "🌿 中级 - 平衡理论和实践",
-                    "高级": "🌳 高级 - 深入架构和设计"
-                }[x],
-                # 使用当前 session state 的值作为默认选项
-                index=["初级", "中级", "高级"].index({
-                    "junior": "初级",
-                    "mid": "中级",
-                    "senior": "高级"
-                }[current_profile.experience_level]),
-                help="影响建议的深度和技术细节",
-                key="experience_level_selectbox"
-            )
+        with st.expander("🎯 调整报告风格（点击修改）", expanded=False):
+            st.markdown("**修改个性化设置**")
 
-            learning_style = st.radio(
-                "学习风格偏好",
-                options=["实战导向", "理论导向", "视觉导向"],
-                format_func=lambda x: {
-                    "实战导向": "🛠️ 实战 - 推荐项目和代码",
-                    "理论导向": "📚 理论 - 推荐书籍和文档",
-                    "视觉导向": "🎨 视觉 - 推荐图表和视频"
-                }[x],
-                # 使用当前 session state 的值作为默认选项
-                index=["实战导向", "理论导向", "视觉导向"].index({
-                    "practical": "实战导向",
-                    "theoretical": "理论导向",
-                    "visual": "视觉导向"
-                }[current_profile.learning_style]),
-                help="影响学习资源的推荐方式",
-                key="learning_style_radio"
-            )
+            # 使用 form 来批量更新，避免频繁重新渲染
+            with st.form("personalization_form"):
+                current_profile = st.session_state.user_profile
 
-            preparation_time = st.slider(
-                "准备时间（周）",
-                min_value=1,
-                max_value=12,
-                value=current_profile.preparation_time_weeks,
-                help="影响学习计划的紧迫度",
-                key="preparation_time_slider"
-            )
+                experience_level = st.selectbox(
+                    "经验水平",
+                    options=["初级", "中级", "高级"],
+                    format_func=lambda x: {
+                        "初级": "🌱 初级 - 通俗易懂，详细解释",
+                        "中级": "🌿 中级 - 平衡理论和实践",
+                        "高级": "🌳 高级 - 深入架构和设计"
+                    }[x],
+                    index=["初级", "中级", "高级"].index({
+                        "junior": "初级",
+                        "mid": "中级",
+                        "senior": "高级"
+                    }[current_profile.experience_level]),
+                    help="影响建议的深度和技术细节"
+                )
 
-            # 更新 session state 中的 UserProfile
-            st.session_state.user_profile = UserProfile(
-                experience_level={
-                    "初级": "junior",
-                    "中级": "mid",
-                    "高级": "senior"
-                }[experience_level],
-                learning_style={
-                    "实战导向": "practical",
-                    "理论导向": "theoretical",
-                    "视觉导向": "visual"
-                }[learning_style],
-                preparation_time_weeks=preparation_time
-            )
+                learning_style = st.radio(
+                    "学习风格偏好",
+                    options=["实战导向", "理论导向", "视觉导向"],
+                    index=["实战导向", "理论导向", "视觉导向"].index({
+                        "practical": "实战导向",
+                        "theoretical": "理论导向",
+                        "visual": "视觉导向"
+                    }[current_profile.learning_style]),
+                    help="影响学习资源的推荐方式"
+                )
 
-            st.info(f"💡 当前配置: {experience_level} | {learning_style} | {preparation_time}周准备")
+                preparation_time = st.slider(
+                    "准备时间（周）",
+                    min_value=1,
+                    max_value=12,
+                    value=current_profile.preparation_time_weeks,
+                    help="影响学习计划的紧迫度"
+                )
+
+                # 提交按钮才更新 session state
+                if st.form_submit_button("保存设置", use_container_width=True):
+                    st.session_state.user_profile = UserProfile(
+                        experience_level={"初级": "junior", "中级": "mid", "高级": "senior"}[experience_level],
+                        learning_style={"实战导向": "practical", "理论导向": "theoretical", "视觉导向": "visual"}[learning_style],
+                        preparation_time_weeks=preparation_time
+                    )
+                    st.success("✅ 设置已更新！")
+                    st.rerun()  # 刷新以显示新配置
 
         st.markdown("---")
 
