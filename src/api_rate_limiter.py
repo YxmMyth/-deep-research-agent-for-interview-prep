@@ -6,14 +6,19 @@ API 速率限制器 - ZhipuAI API 并发控制和重试机制
 - 自动检测 429 错误并重试
 - 指数退避重试策略
 - 统计和监控功能
+- 线程局部存储，避免跨事件循环的 Semaphore 共享问题
 """
 
 import asyncio
 import os
 import logging
+import threading
 from typing import Callable, Any, Optional
 
 logger = logging.getLogger(__name__)
+
+# 线程局部存储（每个 Streamlit 线程独立）
+_thread_local = threading.local()
 
 
 class APIRateLimiter:
@@ -43,8 +48,8 @@ class APIRateLimiter:
         self.max_retries = max_retries or int(os.getenv("ZHIPUAI_MAX_RETRIES", "3"))
         self.initial_backoff = initial_backoff or float(os.getenv("ZHIPUAI_INITIAL_BACKOFF", "1.0"))
 
-        # 创建信号量
-        self._semaphore = asyncio.Semaphore(self.max_concurrent)
+        # 延迟初始化信号量（不在 __init__ 中创建，避免绑定到错误的事件循环）
+        self._semaphore = None
 
         # 统计信息
         self._stats = {
@@ -60,17 +65,31 @@ class APIRateLimiter:
             f"max_retries={self.max_retries}, initial_backoff={self.initial_backoff}s"
         )
 
+    async def _get_or_create_semaphore(self):
+        """
+        在当前事件循环中创建或获取 Semaphore
+
+        这是解决跨事件循环问题的关键：Semaphore 在实际使用时创建，
+        而不是在 __init__ 中创建，因此会绑定到当前的事件循环。
+        """
+        if self._semaphore is None:
+            self._semaphore = asyncio.Semaphore(self.max_concurrent)
+            logger.debug(f"Created new Semaphore in current event loop")
+        return self._semaphore
+
     async def __aenter__(self):
         """进入上下文管理器，获取信号量"""
-        await self._semaphore.acquire()
+        sem = await self._get_or_create_semaphore()
+        await sem.acquire()
         self._stats["total_calls"] += 1
-        logger.debug(f"Acquired semaphore (active: {self._semaphore._value}/{self.max_concurrent})")
+        logger.debug(f"Acquired semaphore (active: {self.max_concurrent - sem._value}/{self.max_concurrent})")
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """退出上下文管理器，释放信号量"""
-        self._semaphore.release()
-        logger.debug(f"Released semaphore (active: {self._semaphore._value}/{self.max_concurrent})")
+        sem = await self._get_or_create_semaphore()
+        sem.release()
+        logger.debug(f"Released semaphore (active: {self.max_concurrent - sem._value}/{self.max_concurrent})")
         return False
 
     async def call_with_retry(
@@ -185,28 +204,27 @@ def is_rate_limit_error(error: Exception) -> bool:
     return any(indicator in error_str for indicator in rate_limit_indicators)
 
 
-# 全局单例
-_rate_limiter_instance: Optional[APIRateLimiter] = None
-
-
 def get_api_rate_limiter() -> APIRateLimiter:
     """
-    获取全局速率限制器实例（单例模式）
+    获取当前线程的速率限制器实例（线程局部存储）
+
+    每个线程获取独立的 limiter 实例，避免跨线程、跨事件循环的 Semaphore 共享问题。
+    这解决了 Streamlit 的 ThreadPoolExecutor 与 asyncio 的兼容性问题。
 
     Returns:
         APIRateLimiter 实例
     """
-    global _rate_limiter_instance
+    if not hasattr(_thread_local, 'rate_limiter'):
+        _thread_local.rate_limiter = APIRateLimiter()
+        logger.debug(f"Created new APIRateLimiter for thread {threading.current_thread().name}")
 
-    if _rate_limiter_instance is None:
-        _rate_limiter_instance = APIRateLimiter()
-
-    return _rate_limiter_instance
+    return _thread_local.rate_limiter
 
 
 def reset_api_rate_limiter():
     """
-    重置全局速率限制器（主要用于测试）
+    重置当前线程的速率限制器（主要用于测试）
     """
-    global _rate_limiter_instance
-    _rate_limiter_instance = None
+    if hasattr(_thread_local, 'rate_limiter'):
+        _thread_local.rate_limiter = None
+        logger.debug(f"Reset APIRateLimiter for thread {threading.current_thread().name}")

@@ -8,6 +8,8 @@ Node 4: Writer and Critic
 import logging
 from src.state import AgentState
 from src.prompts.templates import REPORT_WRITER_PROMPT, CRITIC_CHECKLIST
+from src.prompts.personalization import get_personalized_prompts, get_urgent_mode_prompt
+from src.schemas import UserProfile
 from src.llm import call_llm
 
 logger = logging.getLogger(__name__)
@@ -21,6 +23,7 @@ async def report_writer_node(state: AgentState) -> AgentState:
         - resume_content: 用户简历
         - target_position: 目标岗位
         - gap_analysis: Gap 分析结果
+        - user_profile: 用户画像（用于个性化）
         - revision_count: 当前修订次数
         - critique: 评审意见（如果有）
 
@@ -36,6 +39,9 @@ async def report_writer_node(state: AgentState) -> AgentState:
     if not gap_analysis:
         logger.warning("No gap analysis available, generating generic report")
         gap_analysis = {"resume_vs_jd": [], "jd_vs_interview": [], "resume_vs_interview": []}
+
+    # 获取用户画像（用于个性化）
+    user_profile = state.get("user_profile", UserProfile())
 
     # 准备 Gap 分析的文本描述
     def format_gaps(gaps, title):
@@ -54,14 +60,23 @@ async def report_writer_node(state: AgentState) -> AgentState:
         gap_analysis.resume_vs_interview, "简历 vs 面经"
     )
 
-    # 构建 prompt
-    prompt = REPORT_WRITER_PROMPT.format(
+    # 构建 prompt（先格式化基础模板）
+    base_prompt = REPORT_WRITER_PROMPT.format(
         target_position=state["target_position"],
         resume_content=state["resume_content"],
         resume_vs_jd_analysis=resume_vs_jd_analysis,
         jd_vs_interview_analysis=jd_vs_interview_analysis,
         resume_vs_interview_analysis=resume_vs_interview_analysis,
     )
+
+    # 应用个性化提示词
+    # 如果准备时间≤2周，使用紧急模式；否则使用标准个性化
+    if user_profile.preparation_time_weeks <= 2:
+        prompt = get_urgent_mode_prompt(base_prompt)
+        logger.info(f"Using urgent mode prompt (preparation_time: {user_profile.preparation_time_weeks} weeks)")
+    else:
+        prompt = get_personalized_prompts(user_profile, base_prompt)
+        logger.info(f"Using personalized prompt (experience: {user_profile.experience_level}, style: {user_profile.learning_style})")
 
     # 如果有评审意见，将其加入 prompt
     if revision_count > 0 and state.get("critique"):

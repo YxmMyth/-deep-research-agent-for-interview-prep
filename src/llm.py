@@ -25,10 +25,8 @@ if not ZHIPUAI_API_KEY:
 # 初始化智谱 AI 客户端
 client = ZhipuAI(api_key=ZHIPUAI_API_KEY)
 
-# 导入并初始化速率限制器
+# 导入速率限制器获取函数（不在这里初始化，避免模块级别绑定）
 from src.api_rate_limiter import get_api_rate_limiter
-rate_limiter = get_api_rate_limiter()
-
 
 
 async def call_llm(
@@ -69,6 +67,9 @@ async def call_llm(
         return response
 
     try:
+        # 在函数内部获取当前线程的速率限制器（避免模块级别绑定）
+        rate_limiter = get_api_rate_limiter()
+
         # 使用速率限制器包装 API 调用
         async with rate_limiter:
             response = await rate_limiter.call_with_retry(_api_call)
@@ -119,6 +120,9 @@ async def call_llm_with_system_message(
         return response
 
     try:
+        # 在函数内部获取当前线程的速率限制器（避免模块级别绑定）
+        rate_limiter = get_api_rate_limiter()
+
         # 使用速率限制器包装 API 调用
         async with rate_limiter:
             response = await rate_limiter.call_with_retry(_api_call)

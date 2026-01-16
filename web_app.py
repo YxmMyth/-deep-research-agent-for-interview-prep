@@ -28,6 +28,7 @@ from streamlit import status
 from src.graph import build_graph
 from src.utils.pdf_parser import extract_text_from_file
 from src.rate_limiter import check_rate_limit, get_usage_stats
+from src.schemas import UserProfile
 
 # 加载环境变量
 load_dotenv()
@@ -115,17 +116,22 @@ TAVILY_API_KEY=tvly-...
     return True
 
 
-def run_analysis(resume_content: str, target_position: str) -> dict:
+def run_analysis(resume_content: str, target_position: str, user_profile: UserProfile = None) -> dict:
     """
     运行分析流程（使用线程池避免 asyncio 嵌套问题）
 
     Args:
         resume_content: 简历内容
         target_position: 目标岗位
+        user_profile: 用户画像（用于个性化报告生成）
 
     Returns:
         分析最终状态 (final_state)
     """
+    # 如果没有提供 user_profile，使用默认值
+    if user_profile is None:
+        user_profile = UserProfile()
+
     async def analysis_async():
         try:
             graph = build_graph()
@@ -133,6 +139,7 @@ def run_analysis(resume_content: str, target_position: str) -> dict:
             initial_state = {
                 "resume_content": resume_content,
                 "target_position": target_position,
+                "user_profile": user_profile,  # 新增：传递用户画像
                 "job_descriptions": [],
                 "interview_logs": [],
                 "revision_count": 0,
@@ -199,10 +206,66 @@ def main():
 
         1. 上传你的简历（PDF 或 TXT）
         2. 输入目标岗位
-        3. 点击"开始分析"
-        4. 等待分析完成
-        5. 查看详细报告
+        3. （可选）设置个性化偏好
+        4. 点击"开始分析"
+        5. 等待分析完成
+        6. 查看详细报告
         """)
+
+        st.markdown("---")
+
+        # 个性化设置（新增）
+        st.header("👤 个性化设置")
+
+        with st.expander("🎯 调整报告风格", expanded=False):
+            experience_level = st.selectbox(
+                "经验水平",
+                options=["初级", "中级", "高级"],
+                format_func=lambda x: {
+                    "初级": "🌱 初级 - 通俗易懂，详细解释",
+                    "中级": "🌿 中级 - 平衡理论和实践",
+                    "高级": "🌳 高级 - 深入架构和设计"
+                }[x],
+                index=1,
+                help="影响建议的深度和技术细节"
+            )
+
+            learning_style = st.radio(
+                "学习风格偏好",
+                options=["实战导向", "理论导向", "视觉导向"],
+                format_func=lambda x: {
+                    "实战导向": "🛠️ 实战 - 推荐项目和代码",
+                    "理论导向": "📚 理论 - 推荐书籍和文档",
+                    "视觉导向": "🎨 视觉 - 推荐图表和视频"
+                }[x],
+                index=0,
+                help="影响学习资源的推荐方式"
+            )
+
+            preparation_time = st.slider(
+                "准备时间（周）",
+                min_value=1,
+                max_value=12,
+                value=4,
+                help="影响学习计划的紧迫度"
+            )
+
+            # 构建 UserProfile
+            user_profile = UserProfile(
+                experience_level={
+                    "初级": "junior",
+                    "中级": "mid",
+                    "高级": "senior"
+                }[experience_level],
+                learning_style={
+                    "实战导向": "practical",
+                    "理论导向": "theoretical",
+                    "视觉导向": "visual"
+                }[learning_style],
+                preparation_time_weeks=preparation_time
+            )
+
+            st.info(f"💡 当前配置: {experience_level} | {learning_style} | {preparation_time}周准备")
 
         st.markdown("---")
 
@@ -319,10 +382,11 @@ def main():
                 try:
                     status.write("⚙️ 初始化工作流...")
 
-                    # 运行分析
+                    # 运行分析（传递用户画像）
                     final_state = run_analysis(
                         st.session_state.resume_content,
-                        target_position
+                        target_position,
+                        user_profile  # 新增：传递用户画像
                     )
 
                     # 保存到 session state

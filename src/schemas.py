@@ -5,15 +5,38 @@ Core Pydantic data models for the Interview Agent
 """
 
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, Literal
 
 
 # ===== 输入模型 =====
+class UserProfile(BaseModel):
+    """用户画像（用于个性化报告生成）"""
+
+    experience_level: Literal["junior", "mid", "senior"] = Field(
+        default="mid",
+        description="经验水平：初级(junior)/中级(mid)/高级(senior)"
+    )
+    learning_style: Literal["visual", "practical", "theoretical"] = Field(
+        default="practical",
+        description="学习风格：视觉型(visual)/实战型(practical)/理论型(theoretical)"
+    )
+    preparation_time_weeks: int = Field(
+        default=4,
+        ge=1,
+        le=12,
+        description="准备时间（周），影响学习计划的紧迫度"
+    )
+
+
 class AgentInput(BaseModel):
     """Agent 启动时的用户输入"""
 
     resume_content: str = Field(..., description="用户简历全文本")
     target_position: str = Field(..., description="目标岗位，如: 字节跳动 后端开发 2026校招")
+    user_profile: UserProfile = Field(
+        default_factory=UserProfile,
+        description="用户画像（用于个性化报告生成）"
+    )
 
 
 # ===== JD 提取目标 =====

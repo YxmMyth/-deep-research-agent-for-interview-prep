@@ -10,8 +10,9 @@ Node 3: Gap Analyst
 import json
 import logging
 from src.state import AgentState
-from src.schemas import GapAnalysisResult
+from src.schemas import GapAnalysisResult, UserProfile
 from src.prompts.templates import GAP_ANALYSIS_PROMPT
+from src.prompts.personalization import get_personalized_prompts
 from src.llm import call_llm
 
 logger = logging.getLogger(__name__)
@@ -24,6 +25,7 @@ async def gap_analyst_node(state: AgentState) -> AgentState:
     输入:
         - resume_content: 用户简历
         - target_position: 目标岗位
+        - user_profile: 用户画像（用于个性化）
         - job_descriptions: JD 列表
         - interview_logs: 面经列表
 
@@ -31,6 +33,9 @@ async def gap_analyst_node(state: AgentState) -> AgentState:
         - gap_analysis: GapAnalysisResult 对象
     """
     logger.info("Running gap_analyst_node...")
+
+    # 获取用户画像（用于个性化）
+    user_profile = state.get("user_profile", UserProfile())
 
     # 准备数据摘要
     jd_count = len(state.get("job_descriptions", []))
@@ -65,8 +70,8 @@ JD #{i} - {jd.company_name} - {jd.position_title}
 ---
 """
 
-    # 构建 prompt
-    prompt = GAP_ANALYSIS_PROMPT.format(
+    # 构建 prompt（先格式化基础模板）
+    base_prompt = GAP_ANALYSIS_PROMPT.format(
         resume_content=state["resume_content"],
         target_position=state["target_position"],
         jd_count=jd_count,
@@ -74,6 +79,10 @@ JD #{i} - {jd.company_name} - {jd.position_title}
         interview_count=interview_count,
         interview_summary=interview_summary.strip(),
     )
+
+    # 应用个性化提示词（Gap 分析也需要个性化，不同经验水平关注点不同）
+    prompt = get_personalized_prompts(user_profile, base_prompt)
+    logger.info(f"Using personalized gap analysis prompt (experience: {user_profile.experience_level})")
 
     # 使用智谱 AI GLM-4 进行分析
     try:
