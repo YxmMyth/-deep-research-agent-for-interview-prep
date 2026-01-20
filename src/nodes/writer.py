@@ -11,6 +11,7 @@ from src.prompts.templates import REPORT_WRITER_PROMPT, CRITIC_CHECKLIST
 from src.prompts.personalization import get_personalized_prompts, get_urgent_mode_prompt
 from src.schemas import UserProfile
 from src.llm import call_llm
+from src.progress_tracker import get_progress_tracker, AnalysisStage
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +35,10 @@ async def report_writer_node(state: AgentState) -> AgentState:
     """
     revision_count = state.get("revision_count", 0)
     logger.info(f"Running report_writer_node (revision {revision_count})...")
+
+    # 更新进度
+    tracker = get_progress_tracker()
+    tracker.update_stage(AnalysisStage.REPORT_WRITING)
 
     gap_analysis = state.get("gap_analysis")
     if not gap_analysis:
@@ -92,6 +97,7 @@ async def report_writer_node(state: AgentState) -> AgentState:
     report = await call_llm(prompt, model="glm-4.7", temperature=0.7)
 
     logger.info(f"Report generated (length: {len(report)} chars)")
+    logger.info(f"Revision count: {revision_count}, setting final_report: {revision_count == 0}")
 
     # 返回更新
     return {
@@ -114,6 +120,10 @@ async def critic_node(state: AgentState) -> AgentState:
         - critique: 评审意见（"APPROVED" 表示通过）
     """
     logger.info("Running critic_node...")
+
+    # 更新进度
+    tracker = get_progress_tracker()
+    tracker.update_stage(AnalysisStage.CRITIC)
 
     # 构建 prompt
     prompt = CRITIC_CHECKLIST.format(target_position=state["target_position"])

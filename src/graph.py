@@ -91,12 +91,11 @@ def build_graph() -> CompiledStateGraph:
     # 1. 开始 -> Planner
     builder.add_edge(START, "planner")
 
-    # 2. Fan-out: Planner 之后并行执行两个 Researcher
+    # 2. Sequential: Planner 之后串行执行两个 Researcher（避免429错误）
     builder.add_edge("planner", "jd_researcher")
-    builder.add_edge("planner", "interview_researcher")
+    builder.add_edge("jd_researcher", "interview_researcher")
 
     # 3. Fan-in: 两个 Researcher 都完成后进入 Analyst
-    builder.add_edge("jd_researcher", "gap_analyst")
     builder.add_edge("interview_researcher", "gap_analyst")
 
     # 4. Analyst -> Writer

@@ -14,6 +14,7 @@ from src.schemas import GapAnalysisResult, UserProfile
 from src.prompts.templates import GAP_ANALYSIS_PROMPT
 from src.prompts.personalization import get_personalized_prompts
 from src.llm import call_llm
+from src.progress_tracker import get_progress_tracker, AnalysisStage
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +34,10 @@ async def gap_analyst_node(state: AgentState) -> AgentState:
         - gap_analysis: GapAnalysisResult 对象
     """
     logger.info("Running gap_analyst_node...")
+
+    # 更新进度
+    tracker = get_progress_tracker()
+    tracker.update_stage(AnalysisStage.GAP_ANALYSIS)
 
     # 获取用户画像（用于个性化）
     user_profile = state.get("user_profile", UserProfile())

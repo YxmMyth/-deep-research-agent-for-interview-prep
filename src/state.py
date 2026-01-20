@@ -17,6 +17,8 @@ class AgentState(TypedDict):
     # ===== 输入 =====
     resume_content: str  # 用户简历内容
     target_position: str  # 目标岗位
+    analysis_mode: str  # 分析模式: "quick" 或 "standard"
+    quick_mode_config: dict  # 快速模式配置（可选）
 
     # ===== Node 1 (Planner) 输出 =====
     jd_search_queries: list[str]  # JD 搜索关键词列表

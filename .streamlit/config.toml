@@ -1,0 +1,17 @@
+[general]
+email = ""
+
+[server]
+enableWebsocketCompression = false
+enableCORS = false
+enableXsrfProtection = false
+headless = true
+
+[browser]
+gatherUsageStats = false
+serverAddress = "localhost"
+serverPort = 8501
+
+[client]
+showErrorDetails = true
+toolbarMode = "minimal"

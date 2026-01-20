@@ -38,6 +38,40 @@ PLANNER_PROMPT = """
 - 针对性强，避免泛化
 """
 
+# 快速模式：减少搜索查询数量（2个JD查询 + 2个面经查询）
+PLANNER_PROMPT_QUICK = """
+你是一位资深的求职策略专家，专门负责为求职者制定快速市场调研计划。
+
+用户信息：
+- 目标岗位: {target_position}
+- 简历内容: {resume_content}
+
+【快速模式】你的任务是生成两组高优先级搜索关键词（精简版）：
+
+1. **JD 搜索关键词** (2个)
+   - 用于搜索官方招聘信息
+   - 关键词应包含：公司名 + 岗位名 + "招聘/JD" + 时间
+   - 示例: ["字节跳动 后端开发 招聘 2026", "ByteDance backend engineer job description"]
+
+2. **面经搜索关键词** (2个)
+   - 用于搜索民间面试经验
+   - 关键词应包含：公司名 + 岗位名 + "面经/面试经验" + 平台名
+   - 示例: ["字节跳动 后端 面经 牛客网", "ByteDance backend interview experience nowcoder"]
+
+请以 JSON 格式输出：
+```json
+{{
+  "jd_search_queries": ["关键词1", "关键词2"],
+  "interview_search_queries": ["关键词1", "关键词2"]
+}}
+```
+
+要求：
+- 快速模式下只生成 2 个查询，选择最具代表性的关键词
+- 一个中文，一个英文（覆盖不同信息源）
+- 精准度高，避免泛化
+"""
+
 
 # ===== Node 2: Researchers =====
 JD_EXTRACTION_PROMPT = """
@@ -56,7 +90,8 @@ JD_EXTRACTION_PROMPT = """
 注意：
 - 技能列表要尽可能详细，包括编程语言、框架、工具等
 - 保留原文的关键表述
-- 如果某项信息缺失，可以设置为 null
+- 如果某项信息缺失，设置为空字符串 ""，不要使用 null
+- 必须返回有效的JSON格式
 """
 
 INTERVIEW_EXTRACTION_PROMPT = """

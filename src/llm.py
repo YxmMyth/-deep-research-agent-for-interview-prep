@@ -34,7 +34,8 @@ async def call_llm(
     model: str = "glm-4.7",
     temperature: float = 0.7,
     max_tokens: Optional[int] = None,
-    result_format: str = "message"
+    result_format: str = "message",
+    timeout: int = 120,
 ) -> str:
     """
     调用智谱 AI GLM-4 API
@@ -53,26 +54,34 @@ async def call_llm(
     Raises:
         Exception: API 调用失败时抛出异常
     """
-    # 定义 API 调用函数（同步，因为 ZhipuAI SDK 是同步的）
-    def _api_call():
+    # 定义 API 调用函数（异步封装）
+    async def _api_call():
         logger.info(f"Calling ZhipuAI API with model: {model}")
-        response = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "user", "content": prompt}
-            ],
-            temperature=temperature,
-            max_tokens=max_tokens,
-        )
-        return response
+
+        def _sync_call():
+            return client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+
+        return await asyncio.to_thread(_sync_call)
 
     try:
         # 在函数内部获取当前线程的速率限制器（避免模块级别绑定）
         rate_limiter = get_api_rate_limiter()
+        logger.info(f"Acquiring rate limiter (max_concurrent=3)...")
 
         # 使用速率限制器包装 API 调用
         async with rate_limiter:
-            response = await rate_limiter.call_with_retry(_api_call)
+            logger.info(f"Semaphore acquired, calling API...")
+            response = await asyncio.wait_for(
+                rate_limiter.call_with_retry(_api_call),
+                timeout=timeout,
+            )
 
             # 提取生成的内容
             content = response.choices[0].message.content
@@ -91,6 +100,7 @@ async def call_llm_with_system_message(
     model: str = "glm-4.7",
     temperature: float = 0.7,
     max_tokens: Optional[int] = None,
+    timeout: int = 120,
 ) -> str:
     """
     调用智谱 AI GLM-4 API（支持系统消息）
@@ -101,37 +111,52 @@ async def call_llm_with_system_message(
         model: 模型名称，默认 glm-4
         temperature: 温度参数
         max_tokens: 最大生成 token 数
+        timeout: 超时时间（秒），默认120秒
 
     Returns:
         模型生成的文本内容
     """
-    # 定义 API 调用函数（同步，因为 ZhipuAI SDK 是同步的）
-    def _api_call():
+    # 定义 API 调用函数（异步封装）
+    async def _api_call():
         logger.info(f"Calling ZhipuAI API with system message, model: {model}")
-        response = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": system_message},
-                {"role": "user", "content": user_message},
-            ],
-            temperature=temperature,
-            max_tokens=max_tokens,
-        )
-        return response
+
+        def _sync_call():
+            return client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system_message},
+                    {"role": "user", "content": user_message},
+                ],
+                temperature=temperature,
+                max_tokens=max_tokens,
+                timeout=timeout,
+            )
+
+        return await asyncio.to_thread(_sync_call)
 
     try:
         # 在函数内部获取当前线程的速率限制器（避免模块级别绑定）
         rate_limiter = get_api_rate_limiter()
+        logger.info(f"Acquiring rate limiter (max_concurrent=3)...")
 
         # 使用速率限制器包装 API 调用
         async with rate_limiter:
-            response = await rate_limiter.call_with_retry(_api_call)
+            logger.info(f"Semaphore acquired, calling API with system message...")
+            # 添加超时保护
+            response = await asyncio.wait_for(
+                rate_limiter.call_with_retry(_api_call),
+                timeout=timeout
+            )
 
             # 提取生成的内容
             content = response.choices[0].message.content
             logger.info(f"Successfully generated {len(content)} characters")
             return content
 
+    except asyncio.TimeoutError:
+        error_msg = f"API call timed out after {timeout} seconds"
+        logger.error(error_msg)
+        raise Exception(error_msg)
     except Exception as e:
         error_msg = f"Failed to call ZhipuAI API: {str(e)}"
         logger.error(error_msg)
@@ -142,6 +167,7 @@ async def call_llm_json(
     prompt: str,
     model: str = "glm-4.7",
     temperature: float = 0.0,
+    timeout: int = 120,
 ) -> dict:
     """
     调用智谱 AI GLM-4 API（返回 JSON 格式）
@@ -163,7 +189,8 @@ async def call_llm_json(
             prompt=prompt,
             model=model,
             temperature=temperature,
-            result_format="message"
+            result_format="message",
+            timeout=timeout,
         )
 
         # 提取 JSON 部分

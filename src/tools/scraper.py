@@ -16,12 +16,26 @@ from crawl4ai import AsyncWebCrawler
 from pydantic import BaseModel
 from typing import TypeVar, Type
 import logging
+import io
 
 from src.llm import call_llm_with_system_message
 
-# Windows 编码修复
+# Windows 编码修复（必须在所有其他导入之前）
 if sys.platform == "win32":
+    # 强制使用 UTF-8 编码
     os.environ["PYTHONIOENCODING"] = "utf-8"
+    # 重新配置标准输出流使用 UTF-8
+try:
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    else:
+        # Python 3.9 及更早版本
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+except OSError:
+    # Some Streamlit runners replace stdio with objects that reject reconfigure.
+    pass
 
 # 配置 logger 使用安全的编码
 logging.basicConfig(
@@ -29,7 +43,8 @@ logging.basicConfig(
     format='%(message)s',
     handlers=[
         logging.StreamHandler(sys.stdout)
-    ]
+    ],
+    force=True  # 强制重新配置
 )
 logger = logging.getLogger(__name__)
 
@@ -60,6 +75,8 @@ async def crawl_to_markdown(url: str) -> str:
             word_count_threshold=10,  # 过滤短文本块
             remove_overlay_elements=True,  # 移除弹窗
             bypass_cache=True,  # 绕过缓存以确保最新数据
+            timeout=30,  # 30秒超时，避免大网站爬取过久
+            magic=True,  # 启用智能处理
         )
 
         if result.success:
@@ -183,6 +200,12 @@ async def run_scraper_pipeline(
 
     # Step 1: Crawl + Clean
     markdown = await crawl_to_markdown(url)
+
+    # 检查内容长度（跳过空内容或太短的页面）
+    if len(markdown.strip()) < 50:
+        error_msg = f"Content too short ({len(markdown)} chars), skipping"
+        logger.warning(error_msg)
+        raise ValueError(error_msg)
 
     # Step 2: Extract + Validate
     structured_data = await extract_structured_data(markdown, schema, extraction_prompt)
